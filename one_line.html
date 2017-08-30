@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+  margin: auto;
+  width: 960px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+
+/*.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}*/
+
+
+
+.line {
+  fill: none;
+  stroke: url(#temperature-gradient);
+  stroke-width: 1.5px;
+}
+
+.dot {
+  fill: white;
+  stroke: url(#temperature-gradient);
+  stroke-width: 1.5px;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.focus circle {
+  fill: url(#temperature-gradient);
+  stroke: url(#temperature-gradient);
+  stroke-width: 1.5px;
+}
+
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v4.min.js"></script>
+
+<script>
+
+var margin = {top: 20, right: 20, bottom: 30, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+//var parseDate = d3.time.format("%Y%m%d").parse;
+var parseDate = d3.timeParse("%Y%m%d"),
+    bisectDate = d3.bisector(function(d) { return d.date; }).left,
+    formatValue = d3.format(",.2f"),
+    formatDt = function(d) { return "Temperature was: " + formatValue(d); };
+
+
+//var x = d3.time.scale()
+//    .domain([new Date(2011,10,01), new Date(2011,10,31)])
+//    .range([0, width]);
+var x = d3.scaleTime()
+    .range([0, width]);
+
+
+// var y = d3.scale.linear()
+//    .domain([55, 65])
+//    .range([height, 0]);
+var y = d3.scaleLinear()
+    .range([height, 0]);
+
+
+
+// var xAxis = d3.svg.axis()
+//     .scale(x)
+//     .orient("bottom");
+
+// var yAxis = d3.svg.axis()
+//     .scale(y)
+//     .orient("left");
+
+
+
+
+
+
+//var line = d3.svg.line()
+//    .interpolate("basis")
+//    .x(function(d) { return x(d.date); })
+//    .y(function(d) { return y(d.temperature); });
+var line = d3.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.temperature); });
+
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+//var mimtemp = d3.min(data, function(d) { return d.temperature; })
+//console.log(mintemp)
+
+//var maxtemp = d3.max(data, function(d) { return d.temperature; })
+
+var months,
+    monthKeys,
+    monthParse = d3.timeParse("%Y%m%d");
+
+function type(d) {
+ 
+  d.date = parseDate(d.date);
+  d.temperature = +d.temperature;
+
+  //console.log(d, d.date)
+
+  return {date: d.date, temperature: (Number(d.temperature) ) || 0 };
+
+  };
+
+
+var data_tsv = "date\ttemperature\n20111001\t62.7\n20111002\t59.9\n20111003\t59.1\n20111004\t58.8\n20111005\t58.7\n20111006\t57.0\n20111007\t56.7\n20111008\t56.8\n20111009\t56.7\n20111010\t60.1\n20111011\t61.1\n20111012\t61.5\n20111013\t64.3\n20111014\t67.1\n20111015\t64.6\n20111016\t61.6\n20111017\t61.1\n20111018\t59.2\n20111019\t58.9\n20111020\t57.2\n20111021\t56.4\n20111022\t60.7\n20111023\t65.1\n20111024\t60.9\n20111025\t56.1\n20111026\t54.6\n20111027\t56.1\n20111028\t58.1\n20111029\t57.5\n20111030\t57.7\n20111031\t55.1\n";
+
+
+var data = d3.tsvParse(data_tsv, type);
+
+  console.log(data);
+
+
+// d3.tsv("data.tsv", function(error, data) {
+//   if (error) throw error;
+
+//   data.forEach(function(d) {
+//     d.date = parseDate(d.date);
+//     d.temperature = +d.temperature;
+//   });
+
+  // Scale the range of the data
+  // x.domain([data[0].date, data[data.length - 1].date]);
+  // y.domain(d3.extent(data, function(d) { return d.temperature; }));
+
+  // Scale the range of the data
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+  y.domain([d3.min(data, function(d) { return d.temperature; }), d3.max(data, function(d) { return d.temperature; })]);
+
+
+  svg.append("linearGradient")
+      .attr("id", "temperature-gradient")
+      .attr("gradientUnits", "userSpaceOnUse")
+      .attr("x1", 0).attr("y1", y(55)) 
+      .attr("x2", 0).attr("y2", y(65)) 
+    .selectAll("stop")
+      .data([
+        {offset: "0%", color: "steelblue"},
+        {offset: "50%", color: "gray"},
+        {offset: "100%", color: "red"}
+      ])
+    .enter().append("stop")
+      .attr("offset", function(d) { return d.offset; })
+      .attr("stop-color", function(d) { return d.color; });
+
+  // svg.append("g")
+  //     .attr("class", "x axis")
+  //     .attr("transform", "translate(0," + height + ")")
+  //     .call(xAxis);
+
+  // svg.append("g")
+  //     .attr("class", "y axis")
+  //     .call(yAxis)
+  //   .append("text")
+  //     .attr("transform", "rotate(-90)")
+  //     .attr("y", 6)
+  //     .attr("dy", ".71em")
+  //     .style("text-anchor", "end")
+  //     .text("Temperature (ºF)");
+
+
+  // Add the X Axis
+  svg.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x)
+              .tickFormat(d3.timeFormat("%Y-%m-%d")))
+      .selectAll("text")  
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-90)");
+
+
+  // Add the Y Axis
+  svg.append("g")
+      .attr("class", "axis")
+      .call(d3.axisLeft(y))
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Sentiment");
+
+
+
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+
+  // svg.selectAll(".dot-1")
+  //   .data(data)
+  // .enter().append("circle")
+  //   .attr("class", "dot-1")
+  //   .attr("cx", line.x())
+  //   .attr("cy", line.y())
+  //   .attr("r", 10)
+  //   .attr("fill", "red");
+
+  // Add circles to all at points
+  svg.selectAll(".dot")
+    .data(data)
+  .enter().append("circle")
+    .attr("class", "dot")
+    .attr("cx", line.x())
+    .attr("cy", line.y())
+    .attr("r", 3.5);
+
+  // Add tooltip box showing text containing data value
+  var focus = svg.append("g")
+      .attr("class", "focus")
+      .style("display", "none");
+
+  // .style("fill", function (d) { return d.color; });
+  focus.append("circle")
+      .attr("r", 3.5)
+      .style("fill", "grey");
+
+  focus.append("text")
+      .attr("x", 9)
+      .attr("dy", ".35em");
+
+
+  //    .on("mouseover", function() { focus.style("display", null); })
+  //    .on("mouseout", function() { focus.style("display", "none"); })
+  // .on("mousemove", mousemove)
+  svg.append("rect")
+      .attr("class", "overlay")
+      .attr("width", width)
+      .attr("height", height)
+      .on("mouseover", function() { focus.style("display", null); })
+      .on("mouseout", function() { focus.style("display", "none"); })
+      .on("mousemove", mousemove);
+
+  //focus.select("text").text(d.temperature);
+  function mousemove() {
+    var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(data, x0, 1),
+        d0 = data[i - 1],
+        d1 = data[i],
+        d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+    focus.attr("transform", "translate(" + x(d.date) + "," + y(d.temperature) + ")");
+    focus.select("text").text(formatDt(d.temperature));
+  }
+
+
+
+</script>
